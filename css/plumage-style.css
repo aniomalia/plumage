@@ -1,0 +1,9 @@
+.plumage-button {
+    background: green;
+    width: 130px;
+    height: 40px;
+    color: white;
+    cursor: pointer;
+    z-index: 50;
+    position: relative;
+}

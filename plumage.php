@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Plumagee
+ * Plugin Name: Plumage
  * Plugin URI: https://aniomalia.com/plugins/plumage/
  * Author: Aniomalia
  * Author URI: https://aniomalia.com/
@@ -10,20 +10,36 @@
  * License URI: http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-
-add_action('init', 'anivote_register_db_table', 1);
-add_action('switch_blog', 'anivote_register_db_table');
-
-function anivote_register_db_table() {
-    global $wpdb;
-    $wpdb->aroom_votes = "{$wpdb->prefix}aroom_votes";
+if (!defined('WPINC')) {
+    die;
 }
 
-add_action('after_switch_theme', function () {
+define('PLUMAGE_VERSION', '1.0.0');
+
+function plumage_enqueue_files() {
+    wp_enqueue_script('plumage-script', plugin_dir_url( __FILE__ ) . 'js/plumage-script.js', array('jquery'), '', true);
+    wp_localize_script('plumage-script', 'plumage_data',
+        array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+        )
+    );
+    wp_enqueue_style('plumage-style', plugin_dir_url( __FILE__ ) . 'css/plumage-style.css' );
+}
+add_action('wp_enqueue_scripts', 'plumage_enqueue_files');
+
+add_action('init', 'plumage_register_db_table', 1);
+add_action('plugins_loaded', 'plumage_register_db_table');
+
+function plumage_register_db_table() {
+    global $wpdb;
+    $wpdb->plumage_votes = "{$wpdb->prefix}plumage_votes";
+}
+
+add_action('plugins_loaded', function () {
     global $wpdb;
     $charset_collate = $wpdb->get_charset_collate();
 
-    $sql = "CREATE TABLE {$wpdb->aroom_votes} (
+    $sql = "CREATE TABLE {$wpdb->plumage_votes} (
         vote_id bigint(20) unsigned NOT NULL auto_increment,
         post_id bigint(20) unsigned NOT NULL,
         user_id bigint(20) unsigned NOT NULL,
@@ -38,16 +54,7 @@ add_action('after_switch_theme', function () {
     dbDelta($sql);
 });
 
-function removeElementWithValue($array, $key, $value) {
-    foreach ($array as $subKey => $subArray) {
-        if ($subArray[$key] == $value) {
-            unset($array[$subKey]);
-        }
-    }
-    return $array;
-}
-
-function anivote_number($number, $max = 4) {
+function plumage_format_number($number, $max = 4) {
     $input = (int)$number;
 
     if ($input >= 1000) {
@@ -62,6 +69,13 @@ function anivote_number($number, $max = 4) {
     return $input;
 }
 
+function plumage_get_count($post_id) {
+    global $wpdb;
+    $count = $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id");
+
+    return $count;
+}
+
 function user_has_voted($post_id, $user_id) {
     if (!is_user_logged_in()) {
         return false;
@@ -70,12 +84,12 @@ function user_has_voted($post_id, $user_id) {
         $user_id = get_current_user_id();
     }
     global $wpdb;
-    $table      = $wpdb->aroom_votes;
+    $table      = $wpdb->plumage_votes;
     $user_voted = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE post_id = $post_id AND user_id = $user_id");
     return ($user_voted) ? true : false;
 }
 
-function anivote_callback() {
+function plumage_callback() {
 
     // Ensure we have the data we need to continue
     if (!isset($_POST) || empty($_POST) || !is_user_logged_in()) {
@@ -89,7 +103,6 @@ function anivote_callback() {
     }
 
     global $wpdb;
-    $table = $wpdb->aroom_votes;
 
     $user_id     = get_current_user_id();
     $resource_id = $_POST['resource_id'];
@@ -119,5 +132,16 @@ function anivote_callback() {
 
     exit;
 }
-add_action('wp_ajax_nopriv_anivote_vote', 'anivote_callback');
-add_action('wp_ajax_anivote_vote', 'anivote_callback');
+add_action('wp_ajax_nopriv_plumage_vote', 'plumage_callback');
+add_action('wp_ajax_plumage_vote', 'plumage_callback');
+
+function plumage_part($slug) {
+    ob_start();
+    include( 'parts/' . $slug . '.php' );
+    $output = ob_get_clean();
+    return $output;
+}
+
+function plumage_button() {
+    echo plumage_part('button');
+}
