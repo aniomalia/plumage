@@ -21,6 +21,7 @@ function plumage_enqueue_files() {
     wp_localize_script('plumage-script', 'plumage_data',
         array(
             'ajax_url' => admin_url('admin-ajax.php'),
+            'ajax_nonce'   => wp_create_nonce( 'ajax_post_validation' )
         )
     );
     wp_enqueue_style('plumage-style', plugin_dir_url( __FILE__ ) . 'css/plumage-style.css' );
@@ -42,6 +43,7 @@ add_action('plugins_loaded', function () {
     $sql = "CREATE TABLE {$wpdb->plumage_votes} (
         vote_id bigint(20) unsigned NOT NULL auto_increment,
         post_id bigint(20) unsigned NOT NULL,
+        post_type VARCHAR(50) NOT NULL,
         user_id bigint(20) unsigned NOT NULL,
         vote_time datetime NOT NULL,
         vote_position bigint(20) NOT NULL,
@@ -89,7 +91,9 @@ function user_has_voted($post_id, $user_id) {
     return ($user_voted) ? true : false;
 }
 
-function plumage_callback() {
+function plumage_user_action_callback() {
+
+    check_ajax_referer('ajax_post_validation', 'security');
 
     // Ensure we have the data we need to continue
     if (!isset($_POST) || empty($_POST) || !is_user_logged_in()) {
@@ -105,23 +109,34 @@ function plumage_callback() {
     global $wpdb;
 
     $user_id     = get_current_user_id();
-    $resource_id = $_POST['resource_id'];
+    $post_id = $_POST['post_id'];
 
-    $votes_count = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE post_id = $resource_id");
-    $user_voted  = $wpdb->get_var("SELECT COUNT(*) FROM $table WHERE post_id = $resource_id AND user_id = $user_id");
+    $votes_count = $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id");
+    $user_voted  = $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id AND user_id = $user_id");
 
-    if (!user_has_voted($resource_id, $user_id)) {
-        $data = array(
-            'post_id'       => $resource_id,
-            'user_id'       => $user_id,
-            'vote_time'     => date('c'),
-            'vote_position' => $votes_count,
+    $data = array(
+        'post_id'       => $post_id,
+        'post_type'     => get_post_type($post_id),
+        'user_id'       => $user_id,
+        'vote_time'     => date('c'),
+        'vote_position' => $votes_count ?: 1,
+    );
+
+    if (!user_has_voted($post_id, $user_id)) {
+        $wpdb->insert($wpdb->plumage_votes, $data);
+    } else {
+        $wpdb->delete(
+            $wpdb->plumage_votes,
+            array(
+                'post_id' => $post_id,
+                'user_id' => $user_id,
+            ),
+            array('%d', '%d'),
         );
-        $wpdb->insert($table, $data);
     }
 
     $output = array(
-        'resource_id' => (int)$resource_id,
+        'post_id' => (int)$post_id,
         'date_voted'  => date('c'),
         'votes_total' => $votes,
         'user_voted'  => $user_id,
@@ -132,12 +147,16 @@ function plumage_callback() {
 
     exit;
 }
-add_action('wp_ajax_nopriv_plumage_vote', 'plumage_callback');
-add_action('wp_ajax_plumage_vote', 'plumage_callback');
+add_action('wp_ajax_nopriv_plumage_user_action', 'plumage_user_action_callback');
+add_action('wp_ajax_plumage_user_action', 'plumage_user_action_callback');
 
 function plumage_part($slug) {
     ob_start();
-    include( 'parts/' . $slug . '.php' );
+    if ( locate_template('plumage/' . $slug . '.php') != '' ) {
+        get_template_part('plumage/' . $slug);
+    } else {
+        include( 'parts/' . $slug . '.php' );
+    }
     $output = ob_get_clean();
     return $output;
 }
