@@ -20,6 +20,7 @@ function plumage_enqueue_files() {
     wp_enqueue_script('plumage-script', plugin_dir_url( __FILE__ ) . 'js/plumage-script.js', array('jquery'), '', true);
     wp_localize_script('plumage-script', 'plumage_data',
         array(
+            'site_url' => get_bloginfo('url'),
             'ajax_url' => admin_url('admin-ajax.php'),
             'ajax_nonce'   => wp_create_nonce( 'ajax_post_validation' )
         )
@@ -93,10 +94,20 @@ function user_has_voted($post_id, $user_id) {
 
 function plumage_user_action_callback() {
 
+    if ( ! is_user_logged_in() ) {
+        $output = array(
+            'message' => 'You need to log in first.',
+            'error' => 'login',
+        );
+        echo json_encode($output);
+        exit;
+    }
+
     check_ajax_referer('ajax_post_validation', 'security');
 
+
     // Ensure we have the data we need to continue
-    if (!isset($_POST) || empty($_POST) || !is_user_logged_in()) {
+    if (!isset($_POST) || empty($_POST) ) {
         header('HTTP/1.1 400 Empty POST Values');
         $output = array(
             'error' => 'An error occured',
@@ -119,28 +130,44 @@ function plumage_user_action_callback() {
         'post_type'     => get_post_type($post_id),
         'user_id'       => $user_id,
         'vote_time'     => date('c'),
-        'vote_position' => $votes_count ?: 1,
+        'vote_position' => ($votes_count+1) ?: 1,
     );
 
-    if (!user_has_voted($post_id, $user_id)) {
+    $message = '';
+    $own_post = false;
+    $error = false;
+
+    $has_voted = user_has_voted($post_id, $user_id);
+
+    if (!$has_voted) {
         $wpdb->insert($wpdb->plumage_votes, $data);
+        $votes_count++;
     } else {
-        $wpdb->delete(
-            $wpdb->plumage_votes,
-            array(
-                'post_id' => $post_id,
-                'user_id' => $user_id,
-            ),
-            array('%d', '%d'),
-        );
+        if ( get_post($post_id)->post_author == $user_id ) {
+            $message = 'You cannot unvote your own post.';
+            $error = 'own';
+            $own_post = true;
+        } else {
+            $wpdb->delete(
+                $wpdb->plumage_votes,
+                array(
+                    'post_id' => $post_id,
+                    'user_id' => $user_id,
+                ),
+                array('%d', '%d'),
+            );
+            $votes_count--;
+        }
     }
 
     $output = array(
-        'post_id' => (int)$post_id,
+        'post_id' => (int) $post_id,
         'date_voted'  => date('c'),
-        'votes_total' => $votes,
-        'user_voted'  => $user_id,
-        'has_voted'   => ($already_voted) ? false : true,
+        'votes_count' => $votes_count,
+        'user_id'  => $user_id,
+        'user_has_voted' => ($has_voted) ? 'true' : 'false',
+        'message' => $message,
+        'error' => $error,
     );
 
     echo json_encode($output);

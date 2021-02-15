@@ -1,9 +1,148 @@
+.plumage {
+    --size: 20px;
+    --theme: #4acc6e;
+}
 .plumage-button {
-    background: green;
-    width: 130px;
-    height: 40px;
-    color: white;
     cursor: pointer;
-    z-index: 50;
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 0.25em;
+    line-height: 1;
+    padding: calc(var(--size) * 0.5);
+    display: inline-flex;
+    align-items: center;
+    font-size: 1rem;
+    color: rgba(0, 0, 0, 0.8);
     position: relative;
+    font-weight: 500;
+    overflow: hidden;
+    font-family: var(--font-mono), monospace;
+    transition: all 0.27s ease-in;
+}
+.plumage-button-icon {
+    display: flex;
+    margin-right: 0.5em;
+    position: relative;
+    z-index: 2;
+}
+.plumage-button-text {
+    position: relative;
+    z-index: 2;
+}
+.plumage-button-mark {
+    display: inline-flex;
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--size);
+    height: var(--size);
+    border: 2px solid var(--theme);
+    border-radius: 50%;
+    transition: all 0.27s ease-in;
+}
+.plumage-button-mark > * {
+    display: block;
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background-color: var(--theme);
+    border-radius: 1px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    transition: all 0.27s ease-in;
+    will-change: transform;
+    transform: rotate(0deg) scaleY(1) translate(0px, 0px);
+}
+.plumage-button-mark > :first-child {
+    transform-origin: bottom;
+    height: calc(var(--size) * 0.5);
+}
+.plumage-button-mark > :last-child {
+    transform-origin: left;
+    width: calc(var(--size) * 0.5);
+}
+.plumage-button:hover {
+    opacity: 1;
+    box-shadow: 0 0 0 3px #a0eab5;
+}
+.plumage-button:before {
+    content: "";
+    height: 0;
+    padding-bottom: 200%;
+    width: 200%;
+    top: 100px;
+    background-color: var(--theme);
+    display: block;
+    position: absolute;
+    border-radius: 4px;
+    transform: rotate(45deg);
+    transition: all 0.27s ease-in;
+    z-index: 1;
+}
+.plumage-button.has-voted {
+    color: white;
+}
+.plumage-button.has-voted:before {
+    top: -10px;
+}
+.plumage-button.has-voted .plumage-button-mark {
+    border-color: white;
+    background-color: white;
+}
+
+.plumage-button.has-voted .plumage-button-mark > :first-child {
+    transform: rotate(40deg) scaleY(1.1) translate(-2px, 1px);
+}
+
+.plumage-button.has-voted .plumage-button-mark > :last-child {
+    transform: rotate(40deg) scaleX(0.6) translate(0px, 1px);
+}
+
+.plumage-button-loading {
+    display: block;
+    background-color: rgba(255,255,255, 0.9);
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 7;
+    pointer-events: none;
+    opacity: 0;
+    transition-duration: 0.1s;
+}
+.plumage-button-loading:before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    border: 2px solid;
+    border-color: var(--theme) transparent var(--theme) transparent;
+    border-radius: 50%;
+    --size: 20px;
+    width: var(--size);
+    height: var(--size);
+    animation: spin 1.2s linear infinite;
+}
+.plumage-button-loading.is-active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.plumage-button.user-is-author {
+    pointer-events: none;
 }

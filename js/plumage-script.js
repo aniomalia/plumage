@@ -29,8 +29,8 @@ document.querySelectorAll(`.plumage-button`).forEach(element => {
         event.preventDefault();
         event.stopPropagation();
 
-        // element.classList.add('is-loading');
-        // element.querySelector('.l-loading').classList.add('is-active');
+        element.classList.add('is-loading');
+        element.querySelector('.plumage-button-loading').classList.add('is-active');
 
         fetch(plumage_data.ajax_url, {
             method: 'POST',
@@ -47,27 +47,23 @@ document.querySelectorAll(`.plumage-button`).forEach(element => {
         })
             .then(response => response.text())
             .then((text) => {
-                // output = JSON.parse(text);
-                console.log(text);
-                // console.table(output);
-
-                // element.querySelector('.anivote-vote-text').innerText = output.votes_total;
-                // element.querySelector('.l-loading').classList.remove('is-active');
-                // if (output.has_voted) {
-                //     element.classList.add('has-voted');
-                // } else {
-                //     element.classList.remove('has-voted');
-                // }
-                // element.classList.remove('is-loading');
+                output = JSON.parse(text);
+                if (output.error == 'login') {
+                    location.href = plumage_data.site_url + '/login/';
+                } else {
+                    element.querySelector('.plumage-button-text').innerText = output.votes_count;
+                    if (output.user_has_voted == 'false') {
+                        element.classList.add('has-voted');
+                    } else {
+                        element.classList.remove('has-voted');
+                    }
+                }
+                element.querySelector('.plumage-button-loading').classList.remove('is-active');
+                element.classList.remove('is-loading');
             })
             .catch((error) => {
-                console.log(error);
-
-                // element.querySelector('.l-loading').classList.remove('is-active');
-                // element.classList.remove('is-loading');
+                element.querySelector('.plumage-button-loading').classList.remove('is-active');
+                element.classList.remove('is-loading');
             });
-
-            console.log('end');
-
     });
 });
