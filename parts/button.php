@@ -3,7 +3,7 @@ $post_id = get_the_ID();
 $count = plumage_get_count($post_id);
 $is_author = false;
 global $post;
-if ( is_user_logged_in() && (get_current_user_id() == get_field('resource_meta', $post_id)['original_user']) ) {
+if ( is_user_logged_in() && is_array(get_field('resource_meta', $post_id)) && (get_current_user_id() == get_field('resource_meta', $post_id)['original_user']) ) {
     $is_author = true;
 }
 ?>
