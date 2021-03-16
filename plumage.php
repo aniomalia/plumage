@@ -119,16 +119,16 @@ function plumage_user_action_callback() {
 
     global $wpdb;
 
-    $user_id     = get_current_user_id();
-    $post_id = $_POST['post_id'];
+    $user_id = (int) get_current_user_id();
+    $post_id = (int) $_POST['post_id'];
 
-    $votes_count = $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id");
+    $votes_count = (int) $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id");
     $user_voted  = $wpdb->get_var("SELECT COUNT(*) FROM $wpdb->plumage_votes WHERE post_id = $post_id AND user_id = $user_id");
 
     $data = array(
-        'post_id'       => $post_id,
+        'post_id'       => (int) $post_id,
         'post_type'     => get_post_type($post_id),
-        'user_id'       => $user_id,
+        'user_id'       => (int) $user_id,
         'vote_time'     => date('c'),
         'vote_position' => ($votes_count+1) ?: 1,
     );
@@ -147,6 +147,7 @@ function plumage_user_action_callback() {
             $message = 'You cannot unvote your own post.';
             $error = 'own';
             $own_post = true;
+            $has_voted = false;
         } else {
             $wpdb->delete(
                 $wpdb->plumage_votes,
@@ -159,6 +160,8 @@ function plumage_user_action_callback() {
             $votes_count--;
         }
     }
+
+    update_post_meta( (int) $post_id, 'aroom_total_votes', (int) $votes_count );
 
     $output = array(
         'post_id' => (int) $post_id,

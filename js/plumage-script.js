@@ -21,7 +21,7 @@
 // });
 
 
-document.querySelectorAll(`.plumage-button`).forEach(element => {
+document.querySelectorAll(`button.plumage-button`).forEach(element => {
     let votes = parseInt(element.getAttribute('data-votes'));
     let postId = element.getAttribute('data-id');
 
@@ -48,6 +48,9 @@ document.querySelectorAll(`.plumage-button`).forEach(element => {
             .then(response => response.text())
             .then((text) => {
                 output = JSON.parse(text);
+                if (output.error.length > 0 && output.message.length > 0 ) {
+                    alert(output.message);
+                }
                 if (output.error == 'login') {
                     location.href = plumage_data.site_url + '/login/';
                 } else {
